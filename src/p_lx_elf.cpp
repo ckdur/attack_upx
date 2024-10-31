@@ -2455,9 +2455,9 @@ tribool PackLinuxElf32::canUnpack() // bool, except -1: format known, but not pa
     if (checkEhdr(&ehdri)) {
         return false;
     }
-    if (get_te16(&ehdri.e_phnum) < 2) {
+    /*if (get_te16(&ehdri.e_phnum) < 2) {
         throwCantUnpack("e_phnum must be >= 2");
-    }
+    }*/
     if (Elf32_Ehdr::ET_DYN==get_te16(&ehdri.e_type)) {
         PackLinuxElf32help1(fi);
     }
@@ -8344,7 +8344,11 @@ void PackLinuxElf32::unpack(OutputFile *fo)
     }
 
     fi->seek(overlay_offset - sizeof(l_info), SEEK_SET);
+    printf("overlay_offset=%d\n", overlay_offset);
+    printf("sizeof(linfo)=%d\n", (int)sizeof(linfo));
+    printf("szb_info=%d\n", szb_info);
     fi->readx(&linfo, sizeof(linfo));
+    printf("linfo.l_magic=%x\n", (int)linfo.l_magic);
     if (UPX_MAGIC_LE32 != get_le32(&linfo.l_magic)) {
         NE32 const *const lp = (NE32 const *)(void const *)&linfo;
         // Workaround for bug of extra linfo by some asl_pack2_Shdrs().
@@ -8352,13 +8356,14 @@ void PackLinuxElf32::unpack(OutputFile *fo)
             fi->readx(&linfo, sizeof(linfo));
             if (UPX_MAGIC_LE32 == get_le32(&linfo.l_magic)) {
                 overlay_offset += sizeof(linfo);
+    printf("overlay_offset=%d\n", overlay_offset);
             }
             else {
-                throwCantUnpack("l_info corrupted");
+                throwCantUnpack("l_info corrupted (ELF32 MAGIC)");
             }
         }
         else {
-            throwCantUnpack("l_info corrupted");
+            throwCantUnpack("l_info corrupted (BLANK)");
         }
     }
     lsize = get_te16(&linfo.l_lsize);
