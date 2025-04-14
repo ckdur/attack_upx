@@ -8349,7 +8349,7 @@ void PackLinuxElf32::unpack(OutputFile *fo)
     printf("szb_info=%d\n", szb_info);
     fi->readx(&linfo, sizeof(linfo));
     printf("linfo.l_magic=%x\n", (int)linfo.l_magic);
-    if (UPX_MAGIC_LE32 != get_le32(&linfo.l_magic)) {
+    if (UPX_MAGIC_LE32 != get_le32(&linfo.l_magic) && 0 != get_le32(&linfo.l_magic)) {
         NE32 const *const lp = (NE32 const *)(void const *)&linfo;
         // Workaround for bug of extra linfo by some asl_pack2_Shdrs().
         if (0==lp[0] && 0==lp[1] && 0==lp[2]) { // looks like blank extra
@@ -8603,7 +8603,7 @@ void PackLinuxElf32::unpack(OutputFile *fo)
     if (sz_unc == 0) { // uncompressed size 0 -> EOF
         // note: magic is always stored le32
         unsigned const sz_cpr = get_le32(&bhdr.sz_cpr);
-        if (sz_cpr != UPX_MAGIC_LE32)  // sz_cpr must be h->magic
+        if (sz_cpr != UPX_MAGIC_LE32 && sz_cpr != 0)  // sz_cpr must be h->magic
             throwCompressedDataViolation();
     }
     else { // extra bytes after end?

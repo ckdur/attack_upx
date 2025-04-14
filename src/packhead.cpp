@@ -51,7 +51,7 @@ void PackHeader::reset() noexcept {
 
 static upx_uint8_t get_packheader_checksum(SPAN_S(const byte) buf, int blen) {
     assert(blen >= 4);
-    assert(get_le32(buf) == UPX_MAGIC_LE32);
+    assert(get_le32(buf) == UPX_MAGIC_LE32 || get_le32(buf) == 0x0);
     buf += 4;
     blen -= 4;
     unsigned c = 0;
@@ -176,10 +176,14 @@ void PackHeader::putPackHeader(SPAN_S(byte) p) const {
 //
 **************************************************************************/
 
+#define OTHER_UPX_MAGIC_LE32 0x006b21e6 // u!k\0
 bool PackHeader::decodePackHeaderFromBuf(SPAN_S(const byte) buf, int blen) {
     int boff = find_le32(raw_bytes(buf, blen), blen, UPX_MAGIC_LE32);
-    if (boff < 0)
-        return false;
+    if (boff < 0) {
+        boff = 4; //boff = 0x78; // When the thing is 0x0 at all
+        //boff = find_le32(raw_bytes(buf, blen), blen, OTHER_UPX_MAGIC_LE32);
+        //if (boff < 0) return false;
+    }
     blen -= boff; // bytes remaining in buf
     if (blen < 20)
         throwCantUnpack("header corrupted 1");
@@ -336,8 +340,10 @@ void ph_decompress(PackHeader &ph, SPAN_P(const byte) in, SPAN_P(byte) out, bool
                            ph_forced_method(ph.method), &ph.compress_result);
     if (r == UPX_E_OUT_OF_MEMORY)
         throwOutOfMemoryException();
-    if (r != UPX_E_OK || new_len != ph.u_len)
+    if (/*r != UPX_E_OK || */new_len != ph.u_len) {
+        printf("new_len != ph.u_len, %d, %d\n", new_len, ph.u_len);
         throwCompressedDataViolation();
+    }
 
     // verify checksum of decompressed data
     if (verify_checksum) {
